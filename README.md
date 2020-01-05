@@ -1,2 +1,2 @@
 # React bootcamp
-Just some inital React projects
+Just some initial React projects
