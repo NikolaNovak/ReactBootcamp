@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Popular Repos</title>
+  <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+  <script src='https://unpkg.com/babel-standalone@6/babel.min.js'></script>
+</head>
+<body>
+  <div id='app'></div>
+  <script>
+    window.API = {
+      fetchPopularRepos(language) {
+        // "language" can be "javascript", "ruby", "python", or "all"
+        const encodedURI = encodeURI(`https://api.github.com/search/repositories?q=stars:>1+language:${language}&sort=stars&order=desc&type=Repositories`)
+
+        return fetch(encodedURI)
+          .then((data) => data.json())
+          .then((repos) => repos.items)
+          .catch((error) => {
+            console.warn(error)
+            return null
+          });
+      }
+    }
+  </script>
+
+  <script type='text/babel'>
+    class Loading extends React.Component {
+      constructor(props) {
+        super(props);
+
+        this.state = {
+          text: 'Loading'
+        };
+      }
+      componentDidMount() {
+        const stopper = this.state.text + '...';
+
+        this.interval = setInterval(() => {
+          this.state.text === stopper
+            ? this.setState(() => ({ text: 'Loading' }))
+            : this.setState((prevState) => ({ text: prevState.text + '.' }))
+        }, 300)
+      }
+      componentWillUnmount() {
+        clearInterval(this.interval);
+      }
+      render() {
+        return (
+          <h1>
+            {this.state.text}
+          </h1>
+        )
+      }
+    }
+
+    function LinksComponent (props) {
+      return (
+        <div>
+          <h2>Git popular languages</h2>
+          <ul>
+            {props.list.map((link) => (
+              <li key={link}>
+                <button onClick={() => props.onLinkChange(link)}>{link}</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    function Items (props) {
+      return (
+        <div>
+          <h1>Popular repos for {props.selected}</h1>
+          <ul>
+            {props.list.map((item) => (
+              <li key={item.id}>
+                <a href={item.html_url}>{item.name}</a> 
+                <p>@{item.owner.login}</p>
+                <p>Stars: {item.stargazers_count}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    class App extends React.Component {
+      constructor(props) {
+        super(props)
+
+        this.state = {
+          links: ['all', 'javascript', 'ruby', 'python'],
+          selectedLink: 'all',
+          items: [],
+          loading: true,
+        }
+
+        this.handleLinkChange = this.handleLinkChange.bind(this)
+      }
+      componentDidMount() {
+        API.fetchPopularRepos(this.selectedLink)
+        .then((items) => {
+          this.setState({
+            items,
+            loading: false
+          })
+        })
+      }
+      componentDidUpdate(prevProps, prevState) {
+        if (prevState.selectedLink !== this.state.selectedLink)
+          API.fetchPopularRepos(this.state.selectedLink)
+            .then((items) => {
+              this.setState({
+              items,
+              loading: false
+              })
+            })
+      }
+      handleLinkChange(link) {
+        this.setState((currentState) => {
+          return {
+            selectedLink: link,
+            loading: true
+          }
+        })
+      }
+      render() {
+        if (this.state.loading === true) {
+          return (
+            <div>
+              <LinksComponent
+                list={this.state.links}
+                onLinkChange={this.handleLinkChange}
+              />
+              <Loading/>
+            </div>
+          )
+        }
+        
+        return (
+          <div>
+            <LinksComponent
+              list={this.state.links}
+              onLinkChange={this.handleLinkChange}
+            />
+            <Items 
+              selected={this.state.selectedLink}
+              list={this.state.items}
+            />
+          </div>
+        )
+      }
+    }
+
+    ReactDOM.render(
+      <App />,
+      document.getElementById('app')
+    )
+  </script>
+</body>
+</html>
