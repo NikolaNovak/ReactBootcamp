@@ -117,15 +117,16 @@
               items,
               loading: false
               })
-            })
+          })
       }
       handleLinkChange(link) {
-        this.setState((currentState) => {
-          return {
-            selectedLink: link,
-            loading: true
-          }
-        })
+        if (this.state.selectedLink !== link)
+          this.setState((currentState) => {
+            return {
+              selectedLink: link,
+              loading: true
+            }
+          })
       }
       render() {
         if (this.state.loading === true) {
