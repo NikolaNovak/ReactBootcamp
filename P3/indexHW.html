@@ -55,14 +55,15 @@
       }
     }
 
-    function LinksComponent (props) {
+    function Nav (props) {
+      const languages = ['all', 'javascript', 'ruby', 'python']
       return (
         <div>
           <h2>Git popular languages</h2>
           <ul>
-            {props.list.map((link) => (
-              <li key={link}>
-                <button onClick={() => props.onLinkChange(link)}>{link}</button>
+            {languages.map((language) => (
+              <li key={language}>
+                <button onClick={() => props.onLanguageChange(language)}>{language}</button>
               </li>
             ))}
           </ul>
@@ -70,20 +71,17 @@
       )
     }
 
-    function Items (props) {
+    function Repos (props) {
       return (
-        <div>
-          <h1>Popular repos for {props.selected}</h1>
-          <ul>
-            {props.list.map((item) => (
-              <li key={item.id}>
-                <a href={item.html_url}>{item.name}</a> 
-                <p>@{item.owner.login}</p>
-                <p>Stars: {item.stargazers_count}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul style={{display: 'flex', flexWrap: 'wrap'}}>
+          {props.list.map(({id, name, owner, stargazers_count, html_url}) => (
+            <li key={id} style={{margin: 30}}>
+              <a href={html_url}>{name}</a> 
+              <p>@{owner.login}</p>
+              <p>Stars: {stargazers_count}</p>
+            </li>
+          ))}
+        </ul>
       )
     }
 
@@ -92,16 +90,29 @@
         super(props)
 
         this.state = {
-          links: ['all', 'javascript', 'ruby', 'python'],
-          selectedLink: 'all',
+          selectedLanguage: 'all',
           items: [],
           loading: true,
         }
 
-        this.handleLinkChange = this.handleLinkChange.bind(this)
+        this.handleLanguageChange = this.handleLanguageChange.bind(this)
+        this.fetchLanguage = this.fetchLanguage.bind(this)
       }
+      
       componentDidMount() {
-        API.fetchPopularRepos(this.selectedLink)
+       this.fetchLanguage(this.state.selectedLanguage)
+      }
+      componentDidUpdate(prevProps, prevState) {
+        if (prevState.selectedLanguage !== this.state.selectedLanguage) {
+          this.fetchLanguage(this.state.selectedLanguage)
+        }
+      }
+      fetchLanguage(language) {
+        this.setState({
+            loading: true
+          })
+
+        API.fetchPopularRepos(language)
         .then((items) => {
           this.setState({
             items,
@@ -109,48 +120,25 @@
           })
         })
       }
-      componentDidUpdate(prevProps, prevState) {
-        if (prevState.selectedLink !== this.state.selectedLink)
-          API.fetchPopularRepos(this.state.selectedLink)
-            .then((items) => {
-              this.setState({
-              items,
-              loading: false
-              })
+      handleLanguageChange(language) {
+        if (this.state.selectedLanguage !== language)
+          this.setState({
+            selectedLanguage: language,
           })
       }
-      handleLinkChange(link) {
-        if (this.state.selectedLink !== link)
-          this.setState((currentState) => {
-            return {
-              selectedLink: link,
-              loading: true
-            }
-          })
-      }
+
       render() {
-        if (this.state.loading === true) {
-          return (
-            <div>
-              <LinksComponent
-                list={this.state.links}
-                onLinkChange={this.handleLinkChange}
-              />
-              <Loading/>
-            </div>
-          )
-        }
-        
         return (
           <div>
-            <LinksComponent
-              list={this.state.links}
-              onLinkChange={this.handleLinkChange}
+            <Nav
+              onLanguageChange={this.handleLanguageChange}
             />
-            <Items 
-              selected={this.state.selectedLink}
-              list={this.state.items}
-            />
+            <h1 style={{textAlign: 'center'}}>Popular repos for {this.state.selectedLanguage}</h1>
+            {this.state.loading === true 
+            ? <Loading/>
+            : <Repos 
+                list={this.state.items}
+              />}
           </div>
         )
       }
