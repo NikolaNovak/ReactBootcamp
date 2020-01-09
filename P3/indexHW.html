@@ -110,7 +110,7 @@
       fetchLanguage(language) {
         this.setState({
             loading: true
-          })
+        })
 
         API.fetchPopularRepos(language)
         .then((items) => {
